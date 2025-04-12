@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
 import '../screens/chatbot_page.dart';
 import '../screens/weather_page.dart';
+import '../screens/disease_tracking_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -43,19 +44,31 @@ class HomePage extends StatelessWidget {
               Colors.orange,
               const WeatherPage(),
             ),
+            _buildGridItem(
+              context,
+              languageProvider.language == 'ta'
+                  ? 'நோய் கண்காணிப்பு'
+                  : 'Disease Track',
+              Icons.healing,
+              Colors.green,
+              const DiseaseTrackingPage(),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildGridItem(BuildContext context, String title, IconData icon, Color color, Widget page) {
+  Widget _buildGridItem(
+    BuildContext context,
+    String title,
+    IconData icon,
+    Color color,
+    Widget page,
+  ) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => page),
-        );
+        Navigator.push(context, MaterialPageRoute(builder: (context) => page));
       },
       child: Container(
         decoration: BoxDecoration(
@@ -69,7 +82,11 @@ class HomePage extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
           ],
         ),
