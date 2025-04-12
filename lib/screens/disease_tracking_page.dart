@@ -8,7 +8,6 @@ import '../providers/language_provider.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
-// Add this for text encoding support
 
 class DiseaseTrackingPage extends StatefulWidget {
   const DiseaseTrackingPage({super.key});
@@ -31,8 +30,8 @@ class _DiseaseTrackingPageState extends State<DiseaseTrackingPage> {
     var result = await FlutterImageCompress.compressAndGetFile(
       file.absolute.path,
       targetPath,
-      quality: 40,        // Very aggressive compression
-      minWidth: 800,      // Limit the dimensions
+      quality: 40,
+      minWidth: 800,
       minHeight: 800,
       rotate: 0,
     );
@@ -44,7 +43,7 @@ class _DiseaseTrackingPageState extends State<DiseaseTrackingPage> {
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: source,
-        imageQuality: 50,  // First level compression through the picker
+        imageQuality: 50,
       );
       
       if (pickedFile == null) return;
@@ -53,10 +52,7 @@ class _DiseaseTrackingPageState extends State<DiseaseTrackingPage> {
         _loading = true;
       });
       
-      // Get the picked file
       File imageFile = File(pickedFile.path);
-      
-      // Apply second level compression
       final compressedFile = await _compressImage(imageFile);
       
       setState(() {
@@ -81,10 +77,8 @@ class _DiseaseTrackingPageState extends State<DiseaseTrackingPage> {
     
     while (retryCount <= maxRetries) {
       try {
-        // Create a multipart request
         var request = http.MultipartRequest('POST', url);
         
-        // Add file to request
         var fileStream = http.ByteStream(image.openRead());
         var fileLength = await image.length();
         
@@ -96,17 +90,13 @@ class _DiseaseTrackingPageState extends State<DiseaseTrackingPage> {
         );
         
         request.files.add(multipartFile);
-        
-        // Set headers for UTF-8 encoding
         request.headers['Accept-Charset'] = 'utf-8';
         
-        // Send request with a timeout
         var streamedResponse = await request.send()
             .timeout(const Duration(seconds: 30));
         var response = await http.Response.fromStream(streamedResponse);
         
         if (response.statusCode == 200) {
-          // Use UTF-8 decoder explicitly
           Map<String, dynamic> decodedResponse = json.decode(utf8.decode(response.bodyBytes));
           
           setState(() {
@@ -115,7 +105,6 @@ class _DiseaseTrackingPageState extends State<DiseaseTrackingPage> {
           });
           return;
         } else if (response.statusCode == 502 && retryCount < maxRetries) {
-          // Wait before retry
           retryCount++;
           await Future.delayed(Duration(seconds: 3));
           continue;
@@ -138,14 +127,17 @@ class _DiseaseTrackingPageState extends State<DiseaseTrackingPage> {
   
   void _showError([String message = 'Failed to get prediction. Try again.']) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red.shade700,
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
     );
   }
   
-  // Helper method to safely display Tamil text
   String _sanitizeText(String text) {
-    // If text appears garbled, you might need to handle specific replacements
-    // or encoding issues here
     return text;
   }
   
@@ -153,7 +145,6 @@ class _DiseaseTrackingPageState extends State<DiseaseTrackingPage> {
   Widget build(BuildContext context) {
     final lang = Provider.of<LanguageProvider>(context).language;
     
-    // Localized text map
     final Map<String, Map<String, String>> localizedText = {
       'en': {
         'title': 'Disease Tracking',
@@ -161,8 +152,9 @@ class _DiseaseTrackingPageState extends State<DiseaseTrackingPage> {
         'remedy': 'Remedy',
         'medicine': 'Medicine',
         'camera': 'Camera',
-        'upload': 'Upload Image',
+        'upload': 'Gallery',
         'loading': 'Processing...',
+        'instructions': 'Take or upload a plant image to identify disease',
       },
       'ta': {
         'title': 'நோய் கண்காணிப்பு',
@@ -170,106 +162,417 @@ class _DiseaseTrackingPageState extends State<DiseaseTrackingPage> {
         'remedy': 'சிகிச்சை',
         'medicine': 'மருந்து',
         'camera': 'கேமரா',
-        'upload': 'படம் பதிவேற்று',
+        'upload': 'படம்',
         'loading': 'செயலாக்கம்...',
+        'instructions': 'நோயை அடையாளம் காண தாவர படத்தை எடுக்கவும் அல்லது பதிவேற்றவும்',
       }
     };
     
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          localizedText[lang]!['title']!,
-        ),
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              if (_image != null)
-                Container(
-                  height: 200,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.file(
-                      _image!,
-                      height: 200,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 16),
-              if (_loading)
-                Column(
-                  children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 8),
-                    Text(
-                      localizedText[lang]!['loading']!,
-                    ),
-                  ],
-                )
-              else if (_result != null)
-                Card(
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${localizedText[lang]!['disease']}: ${_sanitizeText(_result!['disease_name'])}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'Noto Sans Tamil', // Add Tamil font
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '${localizedText[lang]!['remedy']}: ${_sanitizeText(_result!['remedy'])}',
-                          style: const TextStyle(
-                            fontFamily: 'Noto Sans Tamil', // Add Tamil font
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '${localizedText[lang]!['medicine']}: ${_sanitizeText(_result!['medicine'])}',
-                          style: const TextStyle(
-                            fontFamily: 'Noto Sans Tamil', // Add Tamil font
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: _loading ? null : () => _pickImage(ImageSource.camera),
-                    icon: const Icon(Icons.camera_alt),
-                    label: Text(
-                      localizedText[lang]!['camera']!,
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: _loading ? null : () => _pickImage(ImageSource.gallery),
-                    icon: const Icon(Icons.photo),
-                    label: Text(
-                      localizedText[lang]!['upload']!,
-                    ),
-                  ),
-                ],
-              )
-            ],
+      body: Stack(
+        children: [
+          // Gradient background
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF0BA360), Color(0xFF3CBA92)],
+              ),
+            ),
           ),
-        ),
+          
+          // Background patterns
+          Positioned(
+            top: -50,
+            right: -50,
+            child: Container(
+              height: 200,
+              width: 200,
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(26),
+                borderRadius: BorderRadius.circular(100),
+              ),
+            ),
+          ),
+          
+          Positioned(
+            bottom: -100,
+            left: -50,
+            child: Container(
+              height: 300,
+              width: 300,
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(13),
+                borderRadius: BorderRadius.circular(150),
+              ),
+            ),
+          ),
+          
+          // Main content
+          SafeArea(
+            child: Column(
+              children: [
+                // Custom app bar
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(51),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.arrow_back,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        localizedText[lang]!['title']!,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Main content area
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Instructions text
+                          if (_image == null)
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 24, top: 16),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withAlpha(51),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.info_outline, color: Colors.white, size: 24),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      localizedText[lang]!['instructions']!,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          
+                          // Image preview
+                          if (_image != null)
+                            Container(
+                              height: 240,
+                              margin: const EdgeInsets.only(bottom: 24, top: 16),
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withAlpha(40),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(20),
+                                child: Image.file(
+                                  _image!,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            
+                          // Loading indicator
+                          if (_loading)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 30),
+                              child: Column(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withAlpha(51),
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: const CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      strokeWidth: 3,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    localizedText[lang]!['loading']!,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                            
+                          // Result card
+                          else if (_result != null)
+                            Container(
+                              width: double.infinity,
+                              margin: const EdgeInsets.only(bottom: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withAlpha(25),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 5),
+                                  ),
+                                ],
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(24.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Disease name section
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(10),
+                                          decoration: BoxDecoration(
+                                            color: Color(0xFF0BA360).withAlpha(26),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Icon(
+                                            Icons.verified,
+                                            color: Color(0xFF0BA360),
+                                            size: 24,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                localizedText[lang]!['disease']!,
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.grey.shade600,
+                                                ),
+                                              ),
+                                              Text(
+                                                _sanitizeText(_result!['disease_name']),
+                                                style: const TextStyle(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontFamily: 'Noto Sans Tamil',
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    
+                                    const Divider(height: 32),
+                                    
+                                    // Remedy section
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(10),
+                                          decoration: BoxDecoration(
+                                            color: Colors.orange.withAlpha(26),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Icon(
+                                            Icons.healing,
+                                            color: Colors.orange,
+                                            size: 24,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                localizedText[lang]!['remedy']!,
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.grey.shade600,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                _sanitizeText(_result!['remedy']),
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontFamily: 'Noto Sans Tamil',
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    
+                                    const SizedBox(height: 16),
+                                    
+                                    // Medicine section
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(10),
+                                          decoration: BoxDecoration(
+                                            color: Colors.blue.withAlpha(26),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Icon(
+                                            Icons.medication,
+                                            color: Colors.blue,
+                                            size: 24,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                localizedText[lang]!['medicine']!,
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.grey.shade600,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                _sanitizeText(_result!['medicine']),
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontFamily: 'Noto Sans Tamil',
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          
+                          // Camera and gallery buttons
+                          Container(
+                            margin: EdgeInsets.only(top: 16, bottom: 24),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: _loading ? null : () => _pickImage(ImageSource.camera),
+                                    child: Container(
+                                      height: 56,
+                                      margin: const EdgeInsets.only(right: 8),
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
+                                        ),
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Color(0xFF4CAF50).withAlpha(77),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            localizedText[lang]!['camera']!,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: _loading ? null : () => _pickImage(ImageSource.gallery),
+                                    child: Container(
+                                      height: 56,
+                                      margin: const EdgeInsets.only(left: 8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withAlpha(51),
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.photo_library, color: Colors.white, size: 20),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            localizedText[lang]!['upload']!,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
