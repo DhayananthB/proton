@@ -13,7 +13,9 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (context) => LanguageProvider(savedLanguage)),
+        ChangeNotifierProvider(
+          create: (context) => LanguageProvider(savedLanguage),
+        ),
       ],
       child: const MyApp(),
     ),

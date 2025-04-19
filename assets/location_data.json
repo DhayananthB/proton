@@ -1,0 +1,314 @@
+{
+  "states": [
+    {
+      "en": "Andhra Pradesh",
+      "ta": "ஆந்திரப் பிரதேசம்"
+    },
+    {
+      "en": "Arunachal Pradesh",
+      "ta": "அருணாச்சலப் பிரதேசம்"
+    },
+    {
+      "en": "Assam",
+      "ta": "அசாம்"
+    },
+    {
+      "en": "Bihar",
+      "ta": "பீகார்"
+    },
+    {
+      "en": "Chhattisgarh",
+      "ta": "சத்தீஸ்கர்"
+    },
+    {
+      "en": "Goa",
+      "ta": "கோவா"
+    },
+    {
+      "en": "Gujarat",
+      "ta": "குஜராத்"
+    },
+    {
+      "en": "Haryana",
+      "ta": "ஹரியானா"
+    },
+    {
+      "en": "Himachal Pradesh",
+      "ta": "ஹிமாச்சலப் பிரதேசம்"
+    },
+    {
+      "en": "Jharkhand",
+      "ta": "ஜார்கண்ட்"
+    },
+    {
+      "en": "Karnataka",
+      "ta": "கர்நாடகா"
+    },
+    {
+      "en": "Kerala",
+      "ta": "கேரளா"
+    },
+    {
+      "en": "Madhya Pradesh",
+      "ta": "மத்தியப் பிரதேசம்"
+    },
+    {
+      "en": "Maharashtra",
+      "ta": "மகாராஷ்டிரா"
+    },
+    {
+      "en": "Manipur",
+      "ta": "மணிப்பூர்"
+    },
+    {
+      "en": "Meghalaya",
+      "ta": "மேகாலயா"
+    },
+    {
+      "en": "Mizoram",
+      "ta": "மிசோரம்"
+    },
+    {
+      "en": "Nagaland",
+      "ta": "நாகாலாந்து"
+    },
+    {
+      "en": "Odisha",
+      "ta": "ஒடிசா"
+    },
+    {
+      "en": "Punjab",
+      "ta": "பஞ்சாப்"
+    },
+    {
+      "en": "Rajasthan",
+      "ta": "ராஜஸ்தான்"
+    },
+    {
+      "en": "Sikkim",
+      "ta": "சிக்கிம்"
+    },
+    {
+      "en": "Tamil Nadu",
+      "ta": "தமிழ்நாடு",
+      "districts": [
+        {
+          "en": "Ariyalur",
+          "ta": "அரியலூர்"
+        },
+        {
+          "en": "Chengalpattu",
+          "ta": "செங்கல்பட்டு"
+        },
+        {
+          "en": "Chennai",
+          "ta": "சென்னை"
+        },
+        {
+          "en": "Coimbatore",
+          "ta": "கோயம்புத்தூர்",
+          "blocks": [
+            {
+              "en": "Kinathukadavu",
+              "ta": "கிணத்துக்கடவு",
+              "villages": [
+                {
+                  "en": "Kallapalayam",
+                  "ta": "கல்லபாளையம்"
+                },
+                {
+                  "en": "Myvadi",
+                  "ta": "மைவாடி"
+                },
+                {
+                  "en": "Arasampalayam",
+                  "ta": "அரசம்பாளையம்"
+                },
+                {
+                  "en": "Modakkupatti",
+                  "ta": "மோடக்குப்பட்டி"
+                },
+                {
+                  "en": "Vellalore",
+                  "ta": "வெள்ளலூர்"
+                },
+                {
+                  "en": "Pappampatti",
+                  "ta": "பாப்பம்பட்டி"
+                },
+                {
+                  "en": "Muthugoundanur",
+                  "ta": "முத்துகௌந்தனூர்"
+                },
+                {
+                  "en": "Periyakuyilai",
+                  "ta": "பெரியகுயிலை"
+                },
+                {
+                  "en": "Thamaraikulam",
+                  "ta": "தாமரைக்குளம்"
+                },
+                {
+                  "en": "Kovilpalayam",
+                  "ta": "கோவில்பாளையம்"
+                }
+              ]
+            },
+            {
+              "en": "Madukkarai",
+              "ta": "மதுக்கரை"
+            },
+            {
+              "en": "Sulur",
+              "ta": "சூலூர்"
+            },
+            {
+              "en": "Thondamuthur",
+              "ta": "தொண்டாமுத்தூர்"
+            },
+            {
+              "en": "Periyanayakkanpalayam",
+              "ta": "பெரியநாயக்கன்பாளையம்"
+            },
+            {
+              "en": "Annur",
+              "ta": "அண்ணூர்"
+            }
+          ]
+        },
+        {
+          "en": "Cuddalore",
+          "ta": "கடலூர்"
+        },
+        {
+          "en": "Dharmapuri",
+          "ta": "தர்மபுரி"
+        },
+        {
+          "en": "Dindigul",
+          "ta": "திண்டுக்கல்"
+        },
+        {
+          "en": "Erode",
+          "ta": "ஈரோடு"
+        },
+        {
+          "en": "Kallakurichi",
+          "ta": "கள்ளக்குறிச்சி"
+        },
+        {
+          "en": "Kanchipuram",
+          "ta": "காஞ்சிபுரம்"
+        },
+        {
+          "en": "Kanniyakumari",
+          "ta": "கன்னியாகுமரி"
+        },
+        {
+          "en": "Karur",
+          "ta": "கரூர்"
+        },
+        {
+          "en": "Krishnagiri",
+          "ta": "கிருஷ்ணகிரி"
+        },
+        {
+          "en": "Madurai",
+          "ta": "மதுரை"
+        },
+        {
+          "en": "Mayiladuthurai",
+          "ta": "மயிலாடுதுறை"
+        },
+        {
+          "en": "Nagapattinam",
+          "ta": "நாகப்பட்டினம்"
+        },
+        {
+          "en": "Namakkal",
+          "ta": "நாமக்கல்"
+        },
+        {
+          "en": "Perambalur",
+          "ta": "பெரம்பலூர்"
+        },
+        {
+          "en": "Pudukkottai",
+          "ta": "புதுக்கோட்டை"
+        },
+        {
+          "en": "Ramanathapuram",
+          "ta": "இராமநாதபுரம்"
+        },
+        {
+          "en": "Ranipet",
+          "ta": "ராணிப்பேட்டை"
+        },
+        {
+          "en": "Salem",
+          "ta": "சேலம்"
+        },
+        {
+          "en": "Sivaganga",
+          "ta": "சிவகங்கை"
+        },
+        {
+          "en": "Tenkasi",
+          "ta": "தென்காசி"
+        },
+        {
+          "en": "Thanjavur",
+          "ta": "தஞ்சாவூர்"
+        },
+        {
+          "en": "Theni",
+          "ta": "தேனி"
+        },
+        {
+          "en": "Thiruvallur",
+          "ta": "திருவள்ளூர்"
+        },
+        {
+          "en": "Thiruvarur",
+          "ta": "திருவாரூர்"
+        },
+        {
+          "en": "Thoothukudi",
+          "ta": "தூத்துக்குடி"
+        },
+        {
+          "en": "Tiruchirappalli",
+          "ta": "திருச்சிராப்பள்ளி"
+        },
+        {
+          "en": "Tirunelveli",
+          "ta": "திருநெல்வேலி"
+        },
+        {
+          "en": "Tirupathur",
+          "ta": "திருப்பத்தூர்"
+        },
+        {
+          "en": "Tiruppur",
+          "ta": "திருப்பூர்"
+        },
+        {
+          "en": "Tiruvannamalai",
+          "ta": "திருவண்ணாமலை"
+        },
+        {
+          "en": "Vellore",
+          "ta": "வேலூர்"
+        },
+        {
+          "en": "Viluppuram",
+          "ta": "விழுப்புரம்"
+        },
+        {
+          "en": "Virudhunagar",
+          "ta": "விருதுநகர்"
+        }
+      ]
+    }
+  ]
+}
