@@ -70,7 +70,7 @@ class _DiseaseTrackingPageState extends State<DiseaseTrackingPage> {
   
   Future<void> _uploadImage(File image) async {
     final lang = Provider.of<LanguageProvider>(context, listen: false).language;
-    final url = Uri.parse('https://pestclassify.onrender.com/predict?lang=$lang');
+    final url = Uri.parse('https://diseaseclassify-ae904721d0f8.herokuapp.com/predict?lang=$lang');
     
     int retryCount = 0;
     const maxRetries = 2;
