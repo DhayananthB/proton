@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
-import 'home_page.dart';
 
 class LanguageSelectionPage extends StatelessWidget {
   const LanguageSelectionPage({super.key});
@@ -10,8 +9,19 @@ class LanguageSelectionPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final languageProvider = Provider.of<LanguageProvider>(context);
     final isEnglish = languageProvider.language != 'ta';
-    
+
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+      ),
+      extendBodyBehindAppBar: true,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -40,9 +50,9 @@ class LanguageSelectionPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  isEnglish 
-                    ? 'Choose your preferred language' 
-                    : 'உங்களுக்கு விருப்பமான மொழியைத் தேர்ந்தெடுக்கவும்',
+                  isEnglish
+                      ? 'Choose your preferred language'
+                      : 'உங்களுக்கு விருப்பமான மொழியைத் தேர்ந்தெடுக்கவும்',
                   style: const TextStyle(
                     fontSize: 16,
                     color: Colors.white70,
@@ -89,28 +99,27 @@ class LanguageSelectionPage extends StatelessWidget {
     required LanguageProvider languageProvider,
   }) {
     final isSelected = languageProvider.language == language;
-    
+
     return GestureDetector(
       onTap: () {
         languageProvider.setLanguage(language);
-        Navigator.pushReplacement(
-          context, 
-          MaterialPageRoute(builder: (context) => HomePage()),
-        );
+        // Removed automatic navigation
       },
       child: Container(
         width: 280,
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.white.withAlpha(51), // 0.2 opacity = 51 in alpha (255 * 0.2)
+          color: isSelected ? Colors.white : Colors.white.withAlpha(51),
           borderRadius: BorderRadius.circular(16),
-          boxShadow: isSelected ? [
-            BoxShadow(
-              color: Colors.black.withAlpha(26), // 0.1 opacity = 26 in alpha (255 * 0.1)
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ] : null,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(26),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           children: [
