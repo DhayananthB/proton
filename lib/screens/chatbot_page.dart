@@ -4,6 +4,7 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../providers/language_provider.dart';
 import '../models/chat_message.dart';
 import '../services/chat_service.dart';
+import '../screens/chat_history_screen.dart';
 
 class ChatBotPage extends StatefulWidget {
   const ChatBotPage({super.key});
@@ -238,7 +239,22 @@ class ChatBotPageState extends State<ChatBotPage> {
             icon: Icon(Icons.history),
             onPressed: () async {
               // Navigate to chat history list
-              // This would be implemented in a separate screen
+              final selectedChatId = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ChatHistoryScreen(),
+                ),
+              );
+              
+              // If a chat was selected, load it
+              if (selectedChatId != null && selectedChatId != _chatId) {
+                setState(() {
+                  _chatId = selectedChatId;
+                  _messages.clear();
+                  _isLoading = true;
+                });
+                await _loadChatHistory();
+              }
             },
             tooltip: localizedText[isTamil ? 'ta' : 'en']!['history']!,
           ),

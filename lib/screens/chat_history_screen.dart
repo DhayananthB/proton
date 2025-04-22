@@ -14,6 +14,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
   final ChatService _chatService = ChatService();
   bool _isLoading = false;
   List<Map<String, dynamic>> _histories = [];
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -23,10 +24,19 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
 
   Future<void> _loadHistories() async {
     if (mounted) {
-      setState(() => _isLoading = true);
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
     }
     
     try {
+      // First check if server is reachable
+      final isServerUp = await _chatService.isServerReachable();
+      if (!isServerUp) {
+        throw Exception('Server is not reachable. The backend might be inactive or offline.');
+      }
+      
       final histories = await _chatService.getAllChatHistories();
       if (mounted) {
         setState(() {
@@ -36,8 +46,22 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
     } catch (e) {
       debugPrint('Error loading chat histories: $e');
       if (mounted) {
+        String errorMessage = 'Failed to load chat histories';
+        
+        // Provide more specific error message based on the exception
+        if (e.toString().contains('Server is not reachable')) {
+          errorMessage = 'Server is offline. Please try again later.';
+        } else if (e.toString().contains('SocketException') || 
+                  e.toString().contains('Connection refused')) {
+          errorMessage = 'No internet connection. Please check your network.';
+        }
+        
+        setState(() {
+          _errorMessage = errorMessage;
+        });
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load chat histories')),
+          SnackBar(content: Text(errorMessage)),
         );
       }
     } finally {
@@ -70,6 +94,24 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
+          : _errorMessage != null && _histories.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _errorMessage!,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: _loadHistories,
+                        child: Text(isTamil ? 'மீண்டும் முயற்சி' : 'Retry'),
+                      ),
+                    ],
+                  ),
+                )
           : _histories.isEmpty
               ? Center(
                   child: Text(

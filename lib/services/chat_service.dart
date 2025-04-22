@@ -94,23 +94,78 @@ class ChatService {
   // Get all chat histories (for history list)
   Future<List<Map<String, dynamic>>> getAllChatHistories() async {
     try {
+      final url = Uri.parse('$baseUrl/history/list');
+      debugPrint('Fetching chat histories from: $url');
+      
       final response = await http.get(
-        Uri.parse('$baseUrl/history/list'),
+        url,
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
           'Accept': 'application/json; charset=UTF-8',
         },
       );
 
+      debugPrint('History response status: ${response.statusCode}');
       if (response.statusCode == 200) {
         // Use utf8.decode to properly handle Tamil characters
-        final List<dynamic> histories = jsonDecode(utf8.decode(response.bodyBytes));
-        return histories.map((h) => h as Map<String, dynamic>).toList();
+        final responseBody = utf8.decode(response.bodyBytes);
+        debugPrint('Response body: $responseBody');
+        
+        final List<dynamic> histories = jsonDecode(responseBody);
+        final result = histories.map((h) => h as Map<String, dynamic>).toList();
+        
+        // Save the result to local storage for offline access
+        _saveHistoriesToLocalStorage(result);
+        
+        return result;
       } else {
+        debugPrint('Server error: ${response.statusCode} - ${response.body}');
+        // Attempt to load from local storage as fallback
+        final localHistories = await _getHistoriesFromLocalStorage();
+        if (localHistories.isNotEmpty) {
+          debugPrint('Returning ${localHistories.length} histories from local storage');
+          return localHistories;
+        }
         throw Exception('Failed to get chat histories: ${response.statusCode} ${response.body}');
       }
     } catch (e) {
+      debugPrint('Network error in getAllChatHistories: $e');
+      // Attempt to load from local storage as fallback
+      final localHistories = await _getHistoriesFromLocalStorage();
+      if (localHistories.isNotEmpty) {
+        debugPrint('Returning ${localHistories.length} histories from local storage after error');
+        return localHistories;
+      }
       throw Exception('Network error: $e');
+    }
+  }
+  
+  // Save histories to local storage
+  Future<void> _saveHistoriesToLocalStorage(List<Map<String, dynamic>> histories) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = jsonEncode(histories);
+      await prefs.setString('chat_histories', jsonString);
+      debugPrint('Saved ${histories.length} histories to local storage');
+    } catch (e) {
+      debugPrint('Error saving histories to local storage: $e');
+    }
+  }
+  
+  // Get histories from local storage
+  Future<List<Map<String, dynamic>>> _getHistoriesFromLocalStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString('chat_histories');
+      if (jsonString == null) {
+        return [];
+      }
+      
+      final List<dynamic> decoded = jsonDecode(jsonString);
+      return decoded.map((h) => h as Map<String, dynamic>).toList();
+    } catch (e) {
+      debugPrint('Error getting histories from local storage: $e');
+      return [];
     }
   }
 
@@ -148,5 +203,23 @@ class ChatService {
   Future<void> clearCurrentChatId() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_chatIdKey);
+  }
+  
+  // Check if the server is reachable
+  Future<bool> isServerReachable() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/health'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 5));
+      
+      debugPrint('Server health check status: ${response.statusCode}');
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Server health check failed: $e');
+      return false;
+    }
   }
 }
