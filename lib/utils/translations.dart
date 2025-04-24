@@ -2,10 +2,12 @@ class AppTranslations {
   static const Map<String, Map<String, String>> translations = {
     'en': {
       'farmerRegistration': 'Farmer Registration',
+      'initialRegistration': 'Initial Registration',
       'enterName': 'Enter your name',
       'enterMobile': 'Enter mobile number',
       'name': 'Name',
       'mobileNumber': 'Mobile Number',
+      'language': 'Language',
       'state': 'State',
       'district': 'District',
       'block': 'Block',
@@ -80,10 +82,12 @@ class AppTranslations {
     },
     'ta': {
       'farmerRegistration': 'விவசாயி பதிவு',
+      'initialRegistration': 'தொடக்க பதிவு',
       'enterName': 'உங்கள் பெயரை உள்ளிடவும்',
       'enterMobile': 'மொபைல் எண்ணை உள்ளிடவும்',
       'name': 'பெயர்',
       'mobileNumber': 'கைபேசி எண்',
+      'language': 'மொழி',
       'state': 'மாநிலம்',
       'district': 'மாவட்டம்',
       'block': 'வட்டாரம்',

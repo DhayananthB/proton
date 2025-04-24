@@ -39,10 +39,6 @@ class Farmer {
     final latValue = json['latitude'];
     final lonValue = json['longitude'];
     
-    // Debug prints to verify coordinate values and types
-    print('Farmer fromJson - Raw latitude: $latValue (${latValue.runtimeType})');
-    print('Farmer fromJson - Raw longitude: $lonValue (${lonValue.runtimeType})');
-    
     // Convert coordinates to double safely
     double latitude;
     double longitude;
@@ -50,9 +46,7 @@ class Farmer {
     try {
       latitude = latValue?.toDouble() ?? 0.0;
       longitude = lonValue?.toDouble() ?? 0.0;
-      print('Farmer fromJson - Parsed coordinates: $latitude, $longitude');
     } catch (e) {
-      print('Farmer fromJson - Error parsing coordinates: $e');
       latitude = 0.0;
       longitude = 0.0;
     }

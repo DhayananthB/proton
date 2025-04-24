@@ -31,14 +31,30 @@ class _HomePageState extends State<HomePage> {
   Future<void> _loadFarmerData() async {
     try {
       final farmer = await FarmerService.getFarmer();
-      setState(() {
-        _farmer = farmer;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _farmer = farmer;
+          _isLoading = false;
+        });
+        
+        // If farmer data is missing, redirect to registration page
+        if (farmer == null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.of(context).pushReplacementNamed('/profile');
+          });
+        }
+      }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        
+        // On error, redirect to registration page
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.of(context).pushReplacementNamed('/profile');
+        });
+      }
       // print("Error loading farmer data: $e");
     }
   }
@@ -178,19 +194,8 @@ class _HomePageState extends State<HomePage> {
                 ),
 
                 // Show farmer profile card if exists or registration button if not
-                if (!_isLoading) ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child:
-                        _farmer != null
-                            ? _buildFarmerProfileCard(
-                              _farmer!,
-                              languageProvider,
-                            )
-                            : _buildRegistrationButton(languageProvider),
-                  ),
+                if (!_isLoading && _farmer != null) 
                   const SizedBox(height: 20),
-                ],
 
                 // Services section
                 Padding(
@@ -280,166 +285,6 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFarmerProfileCard(
-    Farmer farmer,
-    LanguageProvider languageProvider,
-  ) {
-    // Now using the full LanguageProvider instead of just the language string
-    final String currentLanguage = languageProvider.language;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(38),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withAlpha(51)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.person, color: Colors.white, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                farmer.name,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(Icons.phone_android, color: Colors.white, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                farmer.mobileNumber,
-                style: const TextStyle(color: Colors.white, fontSize: 16),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(
-                Icons.location_on_outlined,
-                color: Colors.white,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '${farmer.village}, ${farmer.block}, ${farmer.district}, ${farmer.state}',
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          GestureDetector(
-            onTap: () async {
-              // print("Edit button tapped, language: $currentLanguage");
-              // Pass the language provider to ensure language context is maintained
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (context) => FarmerRegistrationPage(
-                        initialFarmer:
-                            farmer, // Pass the current farmer data for editing
-                      ),
-                ),
-              );
-              // print("Returned from registration page");
-              if (result == true) {
-                _loadFarmerData(); // Reload data when returning from the form
-                // print("Data reload initiated after successful edit");
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withAlpha(51),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                currentLanguage == 'ta' ? 'திருத்து' : 'Edit',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRegistrationButton(LanguageProvider languageProvider) {
-    // Now using the full LanguageProvider
-    final String currentLanguage = languageProvider.language;
-
-    return GestureDetector(
-      onTap: () async {
-        // print("Registration button tapped, language: $currentLanguage");
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const FarmerRegistrationPage(),
-          ),
-        );
-        // print("Returned from registration page");
-        if (result == true) {
-          _loadFarmerData(); // Reload data when returning from the form
-          // print("Data reload initiated after registration");
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Colors.white70, Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(26),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.person_add_alt, color: Color(0xFF6A11CB)),
-            const SizedBox(width: 10),
-            Text(
-              currentLanguage == 'ta'
-                  ? 'விவசாயி விவரங்களை சேர்க்கவும்'
-                  : 'Add Farmer Details',
-              style: const TextStyle(
-                color: Color(0xFF6A11CB),
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

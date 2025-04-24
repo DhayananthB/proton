@@ -11,8 +11,13 @@ import '../utils/translations.dart';
 
 class FarmerRegistrationPage extends StatefulWidget {
   final Farmer? initialFarmer;
+  final bool isInitialRegistration;
 
-  const FarmerRegistrationPage({super.key, this.initialFarmer});
+  const FarmerRegistrationPage({
+    super.key, 
+    this.initialFarmer,
+    this.isInitialRegistration = false,
+  });
 
   @override
   State<FarmerRegistrationPage> createState() => _FarmerRegistrationPageState();
@@ -417,6 +422,8 @@ class _FarmerRegistrationPageState extends State<FarmerRegistrationPage> {
       return AppTranslations.getText(key, currentLanguage);
     }
 
+    final bool canGoBack = !widget.isInitialRegistration;
+
     return Scaffold(
       body: Stack(
         children: [
@@ -472,15 +479,18 @@ class _FarmerRegistrationPageState extends State<FarmerRegistrationPage> {
                           children: [
                             Row(
                               children: [
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.arrow_back_ios,
-                                    color: Colors.white,
+                                if (canGoBack)
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.arrow_back_ios,
+                                      color: Colors.white,
+                                    ),
+                                    onPressed: () => Navigator.pop(context),
                                   ),
-                                  onPressed: () => Navigator.pop(context),
-                                ),
                                 Text(
-                                  getText('farmerRegistration'),
+                                  widget.isInitialRegistration 
+                                      ? getText('initialRegistration') 
+                                      : getText('farmerRegistration'),
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 24,
@@ -640,6 +650,83 @@ class _FarmerRegistrationPageState extends State<FarmerRegistrationPage> {
                                         ],
                                       ),
                                     ),
+                                  const SizedBox(height: 16),
+
+                                  // Language Selection
+                                  _buildFormLabel(getText('language')),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withAlpha(230),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              if (currentLanguage != 'en') {
+                                                Provider.of<LanguageProvider>(context, listen: false).setLanguage('en');
+                                              }
+                                            },
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(vertical: 14),
+                                              decoration: BoxDecoration(
+                                                color: currentLanguage == 'en' 
+                                                    ? const Color(0xFF6A11CB).withAlpha(51) 
+                                                    : Colors.transparent,
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  'English',
+                                                  style: TextStyle(
+                                                    color: currentLanguage == 'en' 
+                                                        ? const Color(0xFF6A11CB) 
+                                                        : Colors.black54,
+                                                    fontWeight: currentLanguage == 'en' 
+                                                        ? FontWeight.bold 
+                                                        : FontWeight.normal,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              if (currentLanguage != 'ta') {
+                                                Provider.of<LanguageProvider>(context, listen: false).setLanguage('ta');
+                                              }
+                                            },
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(vertical: 14),
+                                              decoration: BoxDecoration(
+                                                color: currentLanguage == 'ta' 
+                                                    ? const Color(0xFF6A11CB).withAlpha(51) 
+                                                    : Colors.transparent,
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  'தமிழ்',
+                                                  style: TextStyle(
+                                                    color: currentLanguage == 'ta' 
+                                                        ? const Color(0xFF6A11CB) 
+                                                        : Colors.black54,
+                                                    fontWeight: currentLanguage == 'ta' 
+                                                        ? FontWeight.bold 
+                                                        : FontWeight.normal,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                   const SizedBox(height: 16),
 
                                   _buildFormLabel(getText('state')),
@@ -920,8 +1007,6 @@ class _FarmerRegistrationPageState extends State<FarmerRegistrationPage> {
           throw Exception('Longitude must be between -180 and 180');
         }
         
-        print('Saving farmer with coordinates: $latitude, $longitude');
-        
         final Farmer farmer = Farmer(
           name: _nameController.text.trim(),
           mobileNumber: _mobileController.text.trim(),
@@ -937,7 +1022,6 @@ class _FarmerRegistrationPageState extends State<FarmerRegistrationPage> {
         bool saved = await FarmerService.saveFarmer(farmer);
 
         if (saved && mounted) {
-          print('Farmer data saved successfully with coordinates: $latitude, $longitude');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -951,7 +1035,14 @@ class _FarmerRegistrationPageState extends State<FarmerRegistrationPage> {
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.pop(context, true);
+          
+          if (widget.isInitialRegistration) {
+            // For initial registration, navigate to home page
+            Navigator.of(context).pushReplacementNamed('/home');
+          } else {
+            // For normal profile update, just go back
+            Navigator.pop(context, true);
+          }
         } else if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -963,7 +1054,6 @@ class _FarmerRegistrationPageState extends State<FarmerRegistrationPage> {
           );
         }
       } catch (e) {
-        print('Error saving farmer data: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

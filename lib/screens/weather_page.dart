@@ -53,9 +53,6 @@ class _WeatherPageState extends State<WeatherPage> {
         final location = '${_farmer!.village}, ${_farmer!.district}, ${_farmer!.state}';
         _weather = await WeatherService.getWeatherByCity(location);
       } else {
-        // Add print statements for debugging
-        print('Using coordinates: ${_farmer!.latitude}, ${_farmer!.longitude}');
-        
         // Check for invalid coordinate values
         if (_farmer!.latitude < -90 || _farmer!.latitude > 90 || 
             _farmer!.longitude < -180 || _farmer!.longitude > 180) {
@@ -72,8 +69,7 @@ class _WeatherPageState extends State<WeatherPage> {
       setState(() {
         _isLoading = false;
       });
-    } on Exception catch (e) {
-      print('Weather error: $e');
+    } on Exception {
       setState(() {
         _isLoading = false;
         _hasError = true;
