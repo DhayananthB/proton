@@ -6,8 +6,10 @@ import '../screens/chatbot_page.dart';
 import '../screens/weather_page.dart';
 import '../screens/disease_tracking_page.dart';
 import '../screens/farmer_registration.dart';
+import '../screens/insurance_page.dart';
 import '../services/farmer_service.dart';
 import '../models/farmer_model.dart';
+import '../utils/translations.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -238,6 +240,14 @@ class _HomePageState extends State<HomePage> {
                           Icons.local_hospital_outlined,
                           const [Color(0xFF0ACF83), Color(0xFF0BA360)],
                           const DiseaseTrackingPage(),
+                        ),
+                        // Insurance grid item
+                        _buildGridItem(
+                          context,
+                          AppTranslations.getText('insurance', languageProvider.language),
+                          Icons.security_outlined,
+                          const [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
+                          const InsurancePage(),
                         ),
                         // Registration grid item
                         _buildGridItem(
