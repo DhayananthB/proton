@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:flutter_tts/flutter_tts.dart';
 import '../providers/language_provider.dart';
 import '../models/chat_message.dart';
 import '../services/chat_service.dart';
@@ -15,8 +16,10 @@ class ChatBotPage extends StatefulWidget {
 
 class ChatBotPageState extends State<ChatBotPage> {
   late stt.SpeechToText _speech;
+  late FlutterTts _flutterTts;
   bool _isListening = false;
   bool _isLoading = false;
+  bool _isSpeaking = false;
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<ChatMessage> _messages = [];
@@ -27,7 +30,63 @@ class ChatBotPageState extends State<ChatBotPage> {
   void initState() {
     super.initState();
     _speech = stt.SpeechToText();
+    _initTts();
     _loadChatHistory();
+  }
+
+  Future<void> _initTts() async {
+    _flutterTts = FlutterTts();
+    
+    // Configure TTS
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+    
+    _flutterTts.setStartHandler(() {
+      setState(() {
+        _isSpeaking = true;
+      });
+    });
+
+    _flutterTts.setCompletionHandler(() {
+      setState(() {
+        _isSpeaking = false;
+      });
+    });
+
+    _flutterTts.setErrorHandler((msg) {
+      setState(() {
+        _isSpeaking = false;
+      });
+      debugPrint("TTS error: $msg");
+    });
+  }
+
+  Future<void> _speak(String text) async {
+    if (!mounted) return;
+    
+    final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
+    String langCode = languageProvider.language == 'ta' ? 'ta-IN' : 'en-US';
+    
+    if (_isSpeaking) {
+      await _flutterTts.stop();
+    }
+    
+    // Check mounted again after async operation
+    if (!mounted) return;
+    
+    await _flutterTts.setLanguage(langCode);
+    await _flutterTts.speak(text);
+  }
+
+  Future<void> _stopSpeaking() async {
+    if (_isSpeaking) {
+      await _flutterTts.stop();
+      setState(() {
+        _isSpeaking = false;
+      });
+    }
   }
 
   Future<void> _loadChatHistory() async {
@@ -118,9 +177,16 @@ class ChatBotPageState extends State<ChatBotPage> {
   Future<void> _sendMessage() async {
     if (_textController.text.trim().isEmpty) return;
     
+    // Store message and language information before async operations
     final userMessage = _textController.text;
     final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
     final language = languageProvider.language == 'ta' ? 'tamil' : 'english';
+    
+    // Stop any ongoing TTS before sending new message
+    await _stopSpeaking();
+    
+    // Check if widget is still mounted after async operation
+    if (!mounted) return;
     
     // Add user message to UI immediately
     setState(() {
@@ -144,11 +210,17 @@ class ChatBotPageState extends State<ChatBotPage> {
         language: language,
       );
       
+      // Check if widget is still mounted after API call
+      if (!mounted) return;
+      
       // Update chatId if this is first message
       if (_chatId == null) {
         _chatId = response.chatId;
         // Save chat ID for future sessions
         await _chatService.saveChatId(_chatId!);
+        
+        // Check mounted again after another async operation
+        if (!mounted) return;
       }
       
       // Add assistant response to UI
@@ -159,6 +231,9 @@ class ChatBotPageState extends State<ChatBotPage> {
           timestamp: DateTime.now(),
         ));
       });
+      
+      // Read out the response
+      _speak(response.response);
       
       // Scroll to show the response
       _scrollToBottom();
@@ -231,6 +306,7 @@ class ChatBotPageState extends State<ChatBotPage> {
   @override
   void dispose() {
     _speech.stop();
+    _flutterTts.stop();
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -274,6 +350,7 @@ class ChatBotPageState extends State<ChatBotPage> {
       'typing': 'Typing...',
       'startListening': 'Start voice input',
       'stopListening': 'Stop voice input',
+      'stopSpeaking': 'Stop speaking',
     },
     'ta': {
       'title': 'சாட்பாட்',
@@ -292,6 +369,7 @@ class ChatBotPageState extends State<ChatBotPage> {
       'typing': 'தட்டச்சு செய்கிறது...',
       'startListening': 'குரல் உள்ளீடு தொடங்க',
       'stopListening': 'குரல் உள்ளீடு நிறுத்து',
+      'stopSpeaking': 'பேச்சை நிறுத்து',
     }
   };
 
@@ -314,6 +392,12 @@ class ChatBotPageState extends State<ChatBotPage> {
         backgroundColor: theme.primaryColor,
         foregroundColor: Colors.white,
         actions: [
+          if (_isSpeaking)
+            IconButton(
+              icon: const Icon(Icons.stop),
+              onPressed: _stopSpeaking,
+              tooltip: _getLocalizedText('stopSpeaking'),
+            ),
           IconButton(
             icon: const Icon(Icons.history),
             onPressed: () async {
@@ -629,15 +713,34 @@ class ChatBotPageState extends State<ChatBotPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                message.text,
-                style: TextStyle(
-                  color: isUser ? Colors.white : Colors.black87,
-                  fontFamily: 'Noto Sans Tamil', // Essential for Tamil rendering
-                  fontSize: isTamil ? 16.0 : 15.0, // Slightly larger for Tamil
-                  height: isTamil ? 1.5 : 1.4, // Better line height for Tamil
-                ),
-                textDirection: TextDirection.ltr, // LTR works for both English and Tamil
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      message.text,
+                      style: TextStyle(
+                        color: isUser ? Colors.white : Colors.black87,
+                        fontFamily: 'Noto Sans Tamil', // Essential for Tamil rendering
+                        fontSize: isTamil ? 16.0 : 15.0, // Slightly larger for Tamil
+                        height: isTamil ? 1.5 : 1.4, // Better line height for Tamil
+                      ),
+                      textDirection: TextDirection.ltr, // LTR works for both English and Tamil
+                    ),
+                  ),
+                  if (!isUser) 
+                    InkWell(
+                      onTap: () => _speak(message.text),
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Icon(
+                          Icons.volume_up,
+                          size: 18,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 4),
               Align(
