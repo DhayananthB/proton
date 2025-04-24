@@ -103,7 +103,8 @@ class LanguageSelectionPage extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         languageProvider.setLanguage(language);
-        // Removed automatic navigation
+        // Close the page when language is selected
+        Navigator.pop(context);
       },
       child: Container(
         width: 280,
