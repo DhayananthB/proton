@@ -1,13 +1,565 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+// import 'package:geolocator/geolocator.dart';
+import '../providers/language_provider.dart';
+import '../models/weather_model.dart';
+import '../services/weather_service.dart';
+import '../services/farmer_service.dart';
+import '../models/farmer_model.dart';
 
-class WeatherPage extends StatelessWidget {
+class WeatherPage extends StatefulWidget {
   const WeatherPage({super.key});
 
   @override
+  State<WeatherPage> createState() => _WeatherPageState();
+}
+
+class _WeatherPageState extends State<WeatherPage> {
+  bool _isLoading = true;
+  bool _hasError = false;
+  String _errorMessage = '';
+  Weather? _weather;
+  Farmer? _farmer;
+  bool _useUserLocation = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWeatherData();
+  }
+
+  Future<void> _loadWeatherData() async {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+      _errorMessage = '';
+    });
+
+    try {
+      // First, try to get the farmer's location if available
+      _farmer = await FarmerService.getFarmer();
+      
+      if (_farmer != null && !_useUserLocation) {
+        final location = '${_farmer!.village}, ${_farmer!.district}, ${_farmer!.state}';
+        _weather = await WeatherService.getWeatherByCity(location);
+      } else {
+        // If no farmer data or user prefers current location, use GPS
+        final position = await WeatherService.getCurrentLocation();
+        _weather = await WeatherService.getWeatherByCoordinates(
+          position.latitude,
+          position.longitude,
+        );
+      }
+      
+      setState(() {
+        _isLoading = false;
+      });
+    } on Exception catch (e) {
+      setState(() {
+        _isLoading = false;
+        _hasError = true;
+        if (e.toString().contains('PERMISSION_DENIED') || 
+            e.toString().contains('permissions are denied')) {
+          _errorMessage = 'locationPermissionDenied';
+        } else if (e.toString().contains('services are disabled')) {
+          _errorMessage = 'locationServicesDisabled';
+        } else {
+          _errorMessage = 'weatherError';
+        }
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final languageProvider = Provider.of<LanguageProvider>(context);
+    final isTamil = languageProvider.language == 'ta';
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Weather')),
-      body: Center(child: const Text('Weather details coming soon...')),
+      body: Stack(
+        children: [
+          // Gradient background
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFFFA62E), Color(0xFFEA4D2C)],
+              ),
+            ),
+          ),
+          
+          // Background patterns
+          Positioned(
+            top: -50,
+            right: -50,
+            child: Container(
+              height: 200,
+              width: 200,
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(26),
+                borderRadius: BorderRadius.circular(100),
+              ),
+            ),
+          ),
+
+          Positioned(
+            bottom: -100,
+            left: -50,
+            child: Container(
+              height: 300,
+              width: 300,
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(13),
+                borderRadius: BorderRadius.circular(150),
+              ),
+            ),
+          ),
+
+          // Main content
+          SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // App bar
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      Text(
+                        isTamil ? 'வானிலை' : 'Weather',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      // Location toggle
+                      if (_farmer != null)
+                        IconButton(
+                          icon: Icon(
+                            _useUserLocation ? Icons.gps_fixed : Icons.home,
+                            color: Colors.white,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _useUserLocation = !_useUserLocation;
+                            });
+                            _loadWeatherData();
+                          },
+                          tooltip: _useUserLocation
+                              ? (isTamil ? 'தற்போதைய இருப்பிடம்' : 'Current Location')
+                              : (isTamil ? 'வீட்டு இருப்பிடம்' : 'Home Location'),
+                        ),
+                      // Refresh button
+                      IconButton(
+                        icon: const Icon(Icons.refresh, color: Colors.white),
+                        onPressed: _loadWeatherData,
+                        tooltip: isTamil ? 'புதுப்பிக்க' : 'Refresh',
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Main content
+                Expanded(
+                  child: _isLoading
+                      ? _buildLoadingWidget(isTamil)
+                      : _hasError
+                          ? _buildErrorWidget(isTamil)
+                          : _buildWeatherContent(isTamil),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
+  }
+
+  Widget _buildLoadingWidget(bool isTamil) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            isTamil ? 'வானிலை தகவல்களை ஏற்றுகிறது...' : 'Loading weather data...',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorWidget(bool isTamil) {
+    String errorText;
+    
+    if (_errorMessage == 'locationPermissionDenied') {
+      errorText = isTamil 
+          ? 'இருப்பிட அனுமதி மறுக்கப்பட்டது. அமைப்புகளில் அனுமதிகளை சரிபார்க்கவும்.'
+          : 'Location permission denied. Please check permissions in settings.';
+    } else if (_errorMessage == 'locationServicesDisabled') {
+      errorText = isTamil
+          ? 'இருப்பிட சேவைகள் முடக்கப்பட்டுள்ளன. தயவுசெய்து GPS ஐ இயக்கவும்.'
+          : 'Location services are disabled. Please enable GPS.';
+    } else {
+      errorText = isTamil
+          ? 'வானிலை தகவல்களை பெற முடியவில்லை. தயவுசெய்து மீண்டும் முயற்சிக்கவும்.'
+          : 'Could not fetch weather data. Please try again.';
+    }
+    
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.cloud_off,
+              color: Colors.white,
+              size: 80,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              errorText,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _loadWeatherData,
+              icon: const Icon(Icons.refresh),
+              label: Text(isTamil ? 'மீண்டும் முயற்சி செய்' : 'Retry'),
+              style: ElevatedButton.styleFrom(
+                foregroundColor: const Color(0xFFEA4D2C),
+                backgroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWeatherContent(bool isTamil) {
+    if (_weather == null) return const SizedBox.shrink();
+    
+    // Get translations for Tamil if needed
+    final tamilTranslations = isTamil 
+        ? WeatherService.getTamilWeatherTranslations(_weather!.description)
+        : <String, String>{};
+    
+    final weatherDescription = isTamil 
+        ? tamilTranslations['condition'] ?? _weather!.description
+        : _weather!.description;
+    
+    final dateFormat = DateFormat('E, dd MMM yyyy');
+    final timeFormat = DateFormat('h:mm a');
+    
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Location display
+            Row(
+              children: [
+                const Icon(
+                  Icons.location_on,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _weather!.cityName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 8),
+            
+            // Date and time
+            Text(
+              dateFormat.format(_weather!.date),
+              style: TextStyle(
+                color: Colors.white.withAlpha(230),
+                fontSize: 14,
+              ),
+            ),
+            
+            const SizedBox(height: 30),
+            
+            // Weather icon and temperature
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Image.network(
+                  'https:${_weather!.iconCode}',
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.cloud,
+                    color: Colors.white,
+                    size: 80,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _weather!.temperature.round().toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 70,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Text(
+                          '°C',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      weatherDescription,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 30),
+            
+            // Weather details
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(38),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withAlpha(51)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  // Wind
+                  _buildWeatherDetailItem(
+                    icon: Icons.air,
+                    value: '${_weather!.windSpeed.round()} ${isTamil ? tamilTranslations['kph'] : 'km/h'}',
+                    label: isTamil ? tamilTranslations['wind']! : 'Wind',
+                  ),
+                  // Humidity
+                  _buildWeatherDetailItem(
+                    icon: Icons.water_drop_outlined,
+                    value: '${_weather!.humidity}${isTamil ? tamilTranslations['percent'] : '%'}',
+                    label: isTamil ? tamilTranslations['humidity']! : 'Humidity',
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 30),
+            
+            // Forecast title
+            Text(
+              isTamil ? tamilTranslations['forecast']! : 'Forecast',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Forecast list
+            SizedBox(
+              height: 145,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: _weather!.forecast.length.clamp(0, 5),
+                itemBuilder: (context, index) {
+                  final forecast = _weather!.forecast[index];
+                  final day = DateFormat('E').format(forecast.date);
+                  final dayTamil = _getDayNameInTamil(forecast.date);
+                  
+                  
+                  return Container(
+                    width: 120,
+                    margin: const EdgeInsets.only(right: 16),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withAlpha(38),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withAlpha(51)),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          isTamil ? dayTamil : day,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Image.network(
+                          'https:${forecast.iconCode}',
+                          width: 40,
+                          height: 40,
+                          errorBuilder: (context, error, stackTrace) => const Icon(
+                            Icons.cloud,
+                            color: Colors.white,
+                            size: 40,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${forecast.maxTemp.round()}°/${forecast.minTemp.round()}°',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${forecast.chanceOfRain.round()}%',
+                          style: TextStyle(
+                            color: Colors.white.withAlpha(204),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            
+            const SizedBox(height: 20),
+            
+            // Last updated text
+            Center(
+              child: Text(
+                '${isTamil ? tamilTranslations['updated'] : 'Updated'}: ${timeFormat.format(_weather!.date)}',
+                style: TextStyle(
+                  color: Colors.white.withAlpha(179),
+                  fontSize: 12,
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildWeatherDetailItem({
+    required IconData icon,
+    required String value,
+    required String label,
+  }) {
+    return Column(
+      children: [
+        Icon(icon, color: Colors.white, size: 28),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withAlpha(204),
+            fontSize: 14,
+          ),
+        ),
+      ],
+    );
+  }
+  
+  String _getDayNameInTamil(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+    final dateDay = DateTime(date.year, date.month, date.day);
+    
+    if (dateDay == today) {
+      return 'இன்று';
+    } else if (dateDay == tomorrow) {
+      return 'நாளை';
+    }
+    
+    final dayOfWeek = date.weekday;
+    switch (dayOfWeek) {
+      case DateTime.monday:
+        return 'திங்கள்';
+      case DateTime.tuesday:
+        return 'செவ்வாய்';
+      case DateTime.wednesday:
+        return 'புதன்';
+      case DateTime.thursday:
+        return 'வியாழன்';
+      case DateTime.friday:
+        return 'வெள்ளி';
+      case DateTime.saturday:
+        return 'சனி';
+      case DateTime.sunday:
+        return 'ஞாயிறு';
+      default:
+        return '';
+    }
   }
 }
