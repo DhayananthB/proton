@@ -12,16 +12,29 @@ class WeatherService {
   // Get weather based on location coordinates
   static Future<Weather> getWeatherByCoordinates(double latitude, double longitude) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/forecast.json?key=$apiKey&q=$latitude,$longitude&days=5&aqi=no&alerts=no'),
-      );
-
+      // Format coordinates with proper precision
+      final String formattedLat = latitude.toStringAsFixed(6);
+      final String formattedLon = longitude.toStringAsFixed(6);
+      
+      print('Fetching weather for coordinates: $formattedLat, $formattedLon');
+      
+      final Uri uri = Uri.parse('$baseUrl/forecast.json?key=$apiKey&q=$formattedLat,$formattedLon&days=5&aqi=no&alerts=no');
+      print('Weather API URL: ${uri.toString()}');
+      
+      final response = await http.get(uri);
+      
+      print('Weather API response status: ${response.statusCode}');
+      
       if (response.statusCode == 200) {
-        return Weather.fromJson(json.decode(response.body));
+        final data = json.decode(response.body);
+        print('Weather data received for: ${data['location']['name']}');
+        return Weather.fromJson(data);
       } else {
+        print('Failed to load weather: ${response.statusCode}, Response: ${response.body}');
         throw Exception('Failed to load weather data: ${response.statusCode}');
       }
     } catch (e) {
+      print('Error fetching weather by coordinates: $e');
       throw Exception('Error fetching weather: $e');
     }
   }

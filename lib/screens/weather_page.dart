@@ -21,7 +21,6 @@ class _WeatherPageState extends State<WeatherPage> {
   String _errorMessage = '';
   Weather? _weather;
   Farmer? _farmer;
-  bool _useUserLocation = true;
 
   @override
   void initState() {
@@ -37,18 +36,36 @@ class _WeatherPageState extends State<WeatherPage> {
     });
 
     try {
-      // First, try to get the farmer's location if available
+      // First, get the farmer's data
       _farmer = await FarmerService.getFarmer();
       
-      if (_farmer != null && !_useUserLocation) {
+      if (_farmer == null) {
+        setState(() {
+          _isLoading = false;
+          _hasError = true;
+          _errorMessage = 'farmerDataMissing';
+        });
+        return;
+      }
+      
+      // Check if farmer has valid coordinates
+      if (_farmer!.latitude == 0.0 && _farmer!.longitude == 0.0) {
         final location = '${_farmer!.village}, ${_farmer!.district}, ${_farmer!.state}';
         _weather = await WeatherService.getWeatherByCity(location);
       } else {
-        // If no farmer data or user prefers current location, use GPS
-        final position = await WeatherService.getCurrentLocation();
+        // Add print statements for debugging
+        print('Using coordinates: ${_farmer!.latitude}, ${_farmer!.longitude}');
+        
+        // Check for invalid coordinate values
+        if (_farmer!.latitude < -90 || _farmer!.latitude > 90 || 
+            _farmer!.longitude < -180 || _farmer!.longitude > 180) {
+          throw Exception('Invalid coordinates: ${_farmer!.latitude}, ${_farmer!.longitude}');
+        }
+        
+        // Use farmer's stored coordinates
         _weather = await WeatherService.getWeatherByCoordinates(
-          position.latitude,
-          position.longitude,
+          _farmer!.latitude,
+          _farmer!.longitude,
         );
       }
       
@@ -56,17 +73,11 @@ class _WeatherPageState extends State<WeatherPage> {
         _isLoading = false;
       });
     } on Exception catch (e) {
+      print('Weather error: $e');
       setState(() {
         _isLoading = false;
         _hasError = true;
-        if (e.toString().contains('PERMISSION_DENIED') || 
-            e.toString().contains('permissions are denied')) {
-          _errorMessage = 'locationPermissionDenied';
-        } else if (e.toString().contains('services are disabled')) {
-          _errorMessage = 'locationServicesDisabled';
-        } else {
-          _errorMessage = 'weatherError';
-        }
+        _errorMessage = 'weatherError';
       });
     }
   }
@@ -140,23 +151,6 @@ class _WeatherPageState extends State<WeatherPage> {
                         ),
                       ),
                       const Spacer(),
-                      // Location toggle
-                      if (_farmer != null)
-                        IconButton(
-                          icon: Icon(
-                            _useUserLocation ? Icons.gps_fixed : Icons.home,
-                            color: Colors.white,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _useUserLocation = !_useUserLocation;
-                            });
-                            _loadWeatherData();
-                          },
-                          tooltip: _useUserLocation
-                              ? (isTamil ? 'தற்போதைய இருப்பிடம்' : 'Current Location')
-                              : (isTamil ? 'வீட்டு இருப்பிடம்' : 'Home Location'),
-                        ),
                       // Refresh button
                       IconButton(
                         icon: const Icon(Icons.refresh, color: Colors.white),
@@ -207,14 +201,10 @@ class _WeatherPageState extends State<WeatherPage> {
   Widget _buildErrorWidget(bool isTamil) {
     String errorText;
     
-    if (_errorMessage == 'locationPermissionDenied') {
+    if (_errorMessage == 'farmerDataMissing') {
       errorText = isTamil 
-          ? 'இருப்பிட அனுமதி மறுக்கப்பட்டது. அமைப்புகளில் அனுமதிகளை சரிபார்க்கவும்.'
-          : 'Location permission denied. Please check permissions in settings.';
-    } else if (_errorMessage == 'locationServicesDisabled') {
-      errorText = isTamil
-          ? 'இருப்பிட சேவைகள் முடக்கப்பட்டுள்ளன. தயவுசெய்து GPS ஐ இயக்கவும்.'
-          : 'Location services are disabled. Please enable GPS.';
+          ? 'விவசாயி தகவல்கள் கிடைக்கவில்லை. முதலில் உங்கள் சுயவிவரத்தை உருவாக்கவும்.'
+          : 'Farmer data is missing. Please create your profile first.';
     } else {
       errorText = isTamil
           ? 'வானிலை தகவல்களை பெற முடியவில்லை. தயவுசெய்து மீண்டும் முயற்சிக்கவும்.'

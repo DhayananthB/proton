@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
 import '../providers/language_provider.dart';
 import '../models/farmer_model.dart';
 import '../models/location_model.dart';
@@ -21,6 +22,8 @@ class _FarmerRegistrationPageState extends State<FarmerRegistrationPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _mobileController = TextEditingController();
+  final TextEditingController _latitudeController = TextEditingController();
+  final TextEditingController _longitudeController = TextEditingController();
 
   LocationData? _locationData;
   String? _selectedState;
@@ -28,6 +31,7 @@ class _FarmerRegistrationPageState extends State<FarmerRegistrationPage> {
   String? _selectedBlock;
   String? _selectedVillage;
   bool _isLoading = true;
+  bool _isLoadingLocation = false;
   Farmer? _existingFarmer;
 
   @override
@@ -39,12 +43,17 @@ class _FarmerRegistrationPageState extends State<FarmerRegistrationPage> {
   Future<void> _loadData() async {
     try {
       _locationData = await LocationService.getLocationData();
-
+      
+      // Request location permission and get coordinates automatically
+      _getCurrentLocation();
+      
       if (widget.initialFarmer != null) {
         _existingFarmer = widget.initialFarmer;
 
         _nameController.text = _existingFarmer!.name;
         _mobileController.text = _existingFarmer!.mobileNumber;
+        _latitudeController.text = _existingFarmer!.latitude.toString();
+        _longitudeController.text = _existingFarmer!.longitude.toString();
 
         // Initialize in the next frame to ensure language provider is available
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -56,6 +65,8 @@ class _FarmerRegistrationPageState extends State<FarmerRegistrationPage> {
         if (_existingFarmer != null) {
           _nameController.text = _existingFarmer!.name;
           _mobileController.text = _existingFarmer!.mobileNumber;
+          _latitudeController.text = _existingFarmer!.latitude.toString();
+          _longitudeController.text = _existingFarmer!.longitude.toString();
 
           // Initialize in the next frame to ensure language provider is available
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -69,6 +80,121 @@ class _FarmerRegistrationPageState extends State<FarmerRegistrationPage> {
       if (mounted) {
         setState(() {
           _isLoading = false;
+        });
+      }
+    }
+  }
+
+  // Function to get the current location using Geolocator
+  Future<void> _getCurrentLocation() async {
+    if (mounted) {
+      setState(() {
+        _isLoadingLocation = true;
+      });
+    }
+    
+    try {
+      // Check if location services are enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppTranslations.getText(
+                'locationServicesDisabled', 
+                Provider.of<LanguageProvider>(context, listen: false).language
+              )),
+              backgroundColor: Colors.red,
+            ),
+          );
+          setState(() {
+            _isLoadingLocation = false;
+          });
+        }
+        return;
+      }
+
+      // Check location permissions
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(AppTranslations.getText(
+                  'locationPermissionDenied', 
+                  Provider.of<LanguageProvider>(context, listen: false).language
+                )),
+                backgroundColor: Colors.red,
+              ),
+            );
+            setState(() {
+              _isLoadingLocation = false;
+            });
+          }
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppTranslations.getText(
+                'locationPermissionPermanentlyDenied', 
+                Provider.of<LanguageProvider>(context, listen: false).language
+              )),
+              backgroundColor: Colors.red,
+            ),
+          );
+          setState(() {
+            _isLoadingLocation = false;
+          });
+        }
+        return;
+      }
+
+      // Get the current position
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 15)
+        )
+      );
+      
+      // Update the text fields
+      if (mounted) {
+        setState(() {
+          _latitudeController.text = position.latitude.toString();
+          _longitudeController.text = position.longitude.toString();
+          _isLoadingLocation = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppTranslations.getText(
+              'locationObtained', 
+              Provider.of<LanguageProvider>(context, listen: false).language
+            )),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+      
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppTranslations.getText(
+              'locationError', 
+              Provider.of<LanguageProvider>(context, listen: false).language
+            )),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() {
+          _isLoadingLocation = false;
         });
       }
     }
@@ -277,6 +403,8 @@ class _FarmerRegistrationPageState extends State<FarmerRegistrationPage> {
   void dispose() {
     _nameController.dispose();
     _mobileController.dispose();
+    _latitudeController.dispose();
+    _longitudeController.dispose();
     super.dispose();
   }
 
@@ -402,6 +530,116 @@ class _FarmerRegistrationPageState extends State<FarmerRegistrationPage> {
                                       return null;
                                     },
                                   ),
+                                  const SizedBox(height: 16),
+
+                                  // Farmland location coordinates
+                                  _buildFormLabel(getText('farmlandLocation')),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            if (_latitudeController.text.isNotEmpty && _longitudeController.text.isNotEmpty)
+                                              Padding(
+                                                padding: const EdgeInsets.only(bottom: 8.0),
+                                                child: Text(
+                                                  '${getText('latitude')}: ${_latitudeController.text}\n${getText('longitude')}: ${_longitudeController.text}',
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 14,
+                                                  ),
+                                                ),
+                                              ),
+                                            // Hidden form fields for validation
+                                            Opacity(
+                                              opacity: 0,
+                                              child: SizedBox(
+                                                height: 0,
+                                                child: TextFormField(
+                                                  controller: _latitudeController,
+                                                  validator: (value) {
+                                                    if (value == null || value.trim().isEmpty) {
+                                                      return getText('requiredField');
+                                                    }
+                                                    final latitude = double.tryParse(value);
+                                                    if (latitude == null) {
+                                                      return getText('invalidLatitude');
+                                                    }
+                                                    if (latitude < -90 || latitude > 90) {
+                                                      return getText('latitudeRange');
+                                                    }
+                                                    return null;
+                                                  },
+                                                ),
+                                              ),
+                                            ),
+                                            Opacity(
+                                              opacity: 0,
+                                              child: SizedBox(
+                                                height: 0,
+                                                child: TextFormField(
+                                                  controller: _longitudeController,
+                                                  validator: (value) {
+                                                    if (value == null || value.trim().isEmpty) {
+                                                      return getText('requiredField');
+                                                    }
+                                                    final longitude = double.tryParse(value);
+                                                    if (longitude == null) {
+                                                      return getText('invalidLongitude');
+                                                    }
+                                                    if (longitude < -180 || longitude > 180) {
+                                                      return getText('longitudeRange');
+                                                    }
+                                                    return null;
+                                                  },
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      ElevatedButton.icon(
+                                        icon: Icon(Icons.my_location, size: 20),
+                                        label: Text(getText('updateLocation')),
+                                        onPressed: _isLoadingLocation ? null : _getCurrentLocation,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.white,
+                                          foregroundColor: const Color(0xFF6A11CB),
+                                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                        ),
+                                        
+                                      ),
+                                    ],
+                                  ),
+                                  if (_isLoadingLocation)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 8.0),
+                                      child: Row(
+                                        children: [
+                                          const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            getText('gettingLocation'),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   const SizedBox(height: 16),
 
                                   _buildFormLabel(getText('state')),
@@ -669,42 +907,73 @@ class _FarmerRegistrationPageState extends State<FarmerRegistrationPage> {
         _selectedDistrict != null &&
         _selectedBlock != null &&
         _selectedVillage != null) {
-      final Farmer farmer = Farmer(
-        name: _nameController.text.trim(),
-        mobileNumber: _mobileController.text.trim(),
-        state: _selectedState!,
-        district: _selectedDistrict!,
-        block: _selectedBlock!,
-        village: _selectedVillage!,
-        language: currentLanguage,
-      );
-
-      bool saved = await FarmerService.saveFarmer(farmer);
-
-      if (saved && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _existingFarmer != null
-                  ? AppTranslations.getText('profileUpdated', currentLanguage)
-                  : AppTranslations.getText(
-                    'savedSuccessfully',
-                    currentLanguage,
-                  ),
-            ),
-            backgroundColor: Colors.green,
-          ),
+      
+      try {
+        final latitude = double.parse(_latitudeController.text);
+        final longitude = double.parse(_longitudeController.text);
+        
+        // Validate coordinate ranges
+        if (latitude < -90 || latitude > 90) {
+          throw Exception('Latitude must be between -90 and 90');
+        }
+        if (longitude < -180 || longitude > 180) {
+          throw Exception('Longitude must be between -180 and 180');
+        }
+        
+        print('Saving farmer with coordinates: $latitude, $longitude');
+        
+        final Farmer farmer = Farmer(
+          name: _nameController.text.trim(),
+          mobileNumber: _mobileController.text.trim(),
+          state: _selectedState!,
+          district: _selectedDistrict!,
+          block: _selectedBlock!,
+          village: _selectedVillage!,
+          language: currentLanguage,
+          latitude: latitude,
+          longitude: longitude,
         );
-        Navigator.pop(context, true);
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppTranslations.getText('errorSaving', currentLanguage),
+
+        bool saved = await FarmerService.saveFarmer(farmer);
+
+        if (saved && mounted) {
+          print('Farmer data saved successfully with coordinates: $latitude, $longitude');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                _existingFarmer != null
+                    ? AppTranslations.getText('profileUpdated', currentLanguage)
+                    : AppTranslations.getText(
+                      'savedSuccessfully',
+                      currentLanguage,
+                    ),
+              ),
+              backgroundColor: Colors.green,
             ),
-            backgroundColor: Colors.red,
-          ),
-        );
+          );
+          Navigator.pop(context, true);
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                AppTranslations.getText('errorSaving', currentLanguage),
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (e) {
+        print('Error saving farmer data: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Error: $e',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
