@@ -62,46 +62,35 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final languageProvider = Provider.of<LanguageProvider>(context);
+    final screenSize = MediaQuery.of(context).size;
 
     return Scaffold(
       body: Stack(
         children: [
-          // Gradient background
+          // Agriculture-themed background gradient
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFF6A11CB), Color(0xFF2575FC)],
+                colors: [Color(0xFF1E6F30), Color(0xFF3CAF50)], // Natural green tones
               ),
             ),
           ),
 
-          // Background patterns
+          // Decorative patterns representing crop rows
           Positioned(
-            top: -50,
-            right: -50,
-            child: Container(
-              height: 200,
-              width: 200,
-              decoration: BoxDecoration(
-                color: Colors.white.withAlpha(26),
-                borderRadius: BorderRadius.circular(100),
-              ),
-            ),
+            top: screenSize.height * 0.15,
+            left: 0,
+            right: 0,
+            child: _buildCropPattern(15),
           ),
-
+          
           Positioned(
-            bottom: -100,
-            left: -50,
-            child: Container(
-              height: 300,
-              width: 300,
-              decoration: BoxDecoration(
-                color: Colors.white.withAlpha(13),
-                borderRadius: BorderRadius.circular(150),
-              ),
-            ),
+            bottom: -20,
+            left: 0,
+            right: 0,
+            child: _buildCropPattern(10, reversed: true),
           ),
 
           // Main content
@@ -109,7 +98,7 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Custom app bar
+                // Custom app bar with agriculture styling
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
@@ -123,22 +112,38 @@ class _HomePageState extends State<HomePage> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.white.withAlpha(51),
+                              color: Colors.white.withAlpha(70),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(
-                              Icons.electric_bolt,
+                              Icons.eco_outlined,
                               color: Colors.white,
                               size: 24,
                             ),
                           ),
                           const SizedBox(width: 12),
-                          const Text(
-                            'Proton',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
+                          ShaderMask(
+                            shaderCallback: (bounds) => const LinearGradient(
+                              colors: [Colors.white, Color(0xFFE0F7FA)],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ).createShader(bounds),
+                            child: const Text(
+                              'PROTON',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 28,
+                                fontWeight: FontWeight.w900,
+                                fontFamily: 'RobotoMono',
+                                letterSpacing: 2.0,
+                                shadows: [
+                                  Shadow(
+                                    offset: Offset(0, 2),
+                                    blurRadius: 4.0,
+                                    color: Color(0x99000000),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],
@@ -150,7 +155,7 @@ class _HomePageState extends State<HomePage> {
                         child: Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.white.withAlpha(51),
+                            color: Colors.white.withAlpha(70),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(
@@ -163,54 +168,104 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
 
-                // Welcome text with farmer name if available
+                // Farmer welcome card
                 Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
+                    horizontal: 20,
+                    vertical: 12,
                   ),
-                  child:
-                      _isLoading
-                          ? const SizedBox(
-                            height: 24,
-                            width: 100,
-                            child: LinearProgressIndicator(
-                              backgroundColor: Colors.white24,
-                              color: Colors.white70,
-                            ),
-                          )
-                          : Text(
-                            _farmer != null
-                                ? '${languageProvider.language == 'ta' ? 'வணக்கம்' : 'Welcome'}, ${_farmer!.name}!'
-                                : languageProvider.language == 'ta'
-                                ? 'வணக்கம்!'
-                                : 'Welcome!',
-                            style: TextStyle(
-                              color: Colors.white.withAlpha(230),
-                              fontSize: 22,
-                              fontWeight: FontWeight.w500,
-                            ),
+                  child: Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    color: Colors.white.withAlpha(230),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                backgroundColor: Colors.green.shade100,
+                                radius: 24,
+                                child: Icon(
+                                  Icons.person,
+                                  color: Colors.green.shade700,
+                                  size: 30,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              _isLoading
+                                ? const SizedBox(
+                                    height: 24,
+                                    width: 100,
+                                    child: LinearProgressIndicator(
+                                      backgroundColor: Colors.green,
+                                      color: Colors.lightGreen,
+                                    ),
+                                  )
+                                : Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _farmer != null
+                                            ? '${languageProvider.language == 'ta' ? 'வணக்கம்' : 'Welcome'}, ${_farmer!.name}!'
+                                            : languageProvider.language == 'ta'
+                                            ? 'வணக்கம்!'
+                                            : 'Welcome!',
+                                        style: TextStyle(
+                                          color: Colors.green.shade800,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        languageProvider.language == 'ta'
+                                            ? 'உங்கள் விவசாய உதவியாளர்'
+                                            : 'Your Farming Assistant',
+                                        style: TextStyle(
+                                          color: Colors.green.shade600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                            ],
                           ),
-                ),
-
-                // Show farmer profile card if exists or registration button if not
-                if (!_isLoading && _farmer != null) 
-                  const SizedBox(height: 20),
-
-                // Services section
-                Padding(
-                  padding: const EdgeInsets.only(left: 24, top: 8, bottom: 16),
-                  child: Text(
-                    languageProvider.language == 'ta' ? 'சேவைகள்' : 'Services',
-                    style: TextStyle(
-                      color: Colors.white.withAlpha(179),
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
+                        ],
+                      ),
                     ),
                   ),
                 ),
 
-                // Grid items
+                // Services section with stylized heading
+                Padding(
+                  padding: const EdgeInsets.only(left: 24, top: 20, bottom: 12),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.grass,
+                        color: Colors.white.withAlpha(220),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        languageProvider.language == 'ta' ? 'சேவைகள்' : 'Services',
+                        style: TextStyle(
+                          color: Colors.white.withAlpha(240),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Grid items with agriculture-themed icons
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -224,61 +279,80 @@ class _HomePageState extends State<HomePage> {
                           languageProvider.language == 'ta'
                               ? 'சாட்பாட்'
                               : 'ChatBot',
-                          Icons.chat_bubble_outline,
-                          const [Color(0xFF00C6FB), Color(0xFF005BEA)],
+                          Icons.chat_bubble_outlined,
+                          [const Color(0xFF66BB6A), const Color(0xFF43A047)],
                           const ChatBotPage(),
+                          'smart_farm_assistant',
                         ),
                         _buildGridItem(
                           context,
                           languageProvider.language == 'ta'
                               ? 'வானிலை'
                               : 'Weather',
-                          Icons.cloud_outlined,
-                          const [Color(0xFFFFA62E), Color(0xFFEA4D2C)],
+                          Icons.wb_sunny_outlined,
+                          [const Color(0xFF29B6F6), const Color(0xFF0288D1)],
                           const WeatherPage(),
+                          'weather_forecast',
                         ),
                         _buildGridItem(
                           context,
                           languageProvider.language == 'ta'
                               ? 'நோய் கண்காணிப்பு'
                               : 'Disease Track',
-                          Icons.local_hospital_outlined,
-                          const [Color(0xFF0ACF83), Color(0xFF0BA360)],
+                          Icons.bug_report_outlined,
+                          [const Color(0xFFFF7043), const Color(0xFFE64A19)],
                           const DiseaseTrackingPage(),
+                          'plant_health',
                         ),
-                        // Insurance grid item
                         _buildGridItem(
                           context,
                           AppTranslations.getText('insurance', languageProvider.language),
-                          Icons.security_outlined,
-                          const [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
+                          Icons.shield_outlined,
+                          [const Color(0xFF9575CD), const Color(0xFF5E35B1)],
                           const InsurancePage(),
+                          'crop_protection',
                         ),
-                        // Registration grid item
                         _buildGridItem(
                           context,
                           languageProvider.language == 'ta'
                               ? 'விவரங்கள்'
                               : 'Profile',
-                          Icons.person_outline,
-                          const [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
+                          Icons.account_circle_outlined,
+                          [const Color(0xFFFFB74D), const Color(0xFFFF9800)],
                           const FarmerRegistrationPage(),
+                          'farmer_profile',
                         ),
                       ],
                     ),
                   ),
                 ),
 
-                // Bottom section with version info
+                // Bottom section with leaf divider and version info
                 Container(
                   alignment: Alignment.center,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Text(
-                    'v1.0.0',
-                    style: TextStyle(
-                      color: Colors.white.withAlpha(128),
-                      fontSize: 12,
-                    ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.eco, color: Colors.white.withAlpha(90), size: 12),
+                          const SizedBox(width: 5),
+                          Icon(Icons.eco, color: Colors.white.withAlpha(90), size: 12),
+                          const SizedBox(width: 5),
+                          Icon(Icons.eco, color: Colors.white.withAlpha(90), size: 12),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'v1.0.0',
+                        style: TextStyle(
+                          color: Colors.white.withAlpha(150),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -289,12 +363,37 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildCropPattern(int count, {bool reversed = false}) {
+    return SizedBox(
+      height: 50,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const NeverScrollableScrollPhysics(),
+        child: Wrap(
+          spacing: 10,
+          children: List.generate(
+            count,
+            (index) => Transform.rotate(
+              angle: reversed ? 3.14 : 0, // 180 degrees in radians if reversed
+              child: Icon(
+                Icons.grass,
+                color: Colors.white.withAlpha(15 + (index % 3) * 5),
+                size: 24 + (index % 4) * 2,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildGridItem(
     BuildContext context,
     String title,
     IconData icon,
     List<Color> gradientColors,
     Widget page,
+    String semanticLabel,
   ) {
     return GestureDetector(
       onTap: () async {
@@ -319,9 +418,9 @@ class _HomePageState extends State<HomePage> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: gradientColors[0].withAlpha(77),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+              color: gradientColors[0].withAlpha(60),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -329,12 +428,17 @@ class _HomePageState extends State<HomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withAlpha(51),
-                borderRadius: BorderRadius.circular(16),
+                color: Colors.white.withAlpha(50),
+                shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: 36, color: Colors.white),
+              child: Icon(
+                icon,
+                size: 32,
+                color: Colors.white,
+                semanticLabel: semanticLabel,
+              ),
             ),
             const SizedBox(height: 14),
             Text(
@@ -343,7 +447,15 @@ class _HomePageState extends State<HomePage> {
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
+                shadows: [
+                  Shadow(
+                    offset: Offset(0, 1),
+                    blurRadius: 3,
+                    color: Color(0x66000000),
+                  ),
+                ],
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
