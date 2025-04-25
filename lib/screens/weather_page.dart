@@ -7,6 +7,7 @@ import '../models/weather_model.dart';
 import '../services/weather_service.dart';
 import '../services/farmer_service.dart';
 import '../models/farmer_model.dart';
+import '../services/weather_notification_service.dart';
 
 class WeatherPage extends StatefulWidget {
   const WeatherPage({super.key});
@@ -69,6 +70,14 @@ class _WeatherPageState extends State<WeatherPage> {
       setState(() {
         _isLoading = false;
       });
+      
+      // Check if widget is still mounted before using context
+      if (!mounted) return;
+      
+      // Check weather conditions and show notifications if necessary
+      final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
+      final isTamil = languageProvider.language == 'ta';
+      await WeatherNotificationService.checkWeatherAndNotify(_weather!, isTamil);
     } on Exception {
       setState(() {
         _isLoading = false;
@@ -389,6 +398,11 @@ class _WeatherPageState extends State<WeatherPage> {
             
             const SizedBox(height: 30),
             
+            // Crop Advisory Section
+            _buildCropAdvisorySection(isTamil),
+            
+            const SizedBox(height: 30),
+            
             // Forecast title
             Text(
               isTamil ? tamilTranslations['forecast']! : 'Forecast',
@@ -547,5 +561,152 @@ class _WeatherPageState extends State<WeatherPage> {
       default:
         return '';
     }
+  }
+  
+  // New method to build crop advisory section
+  Widget _buildCropAdvisorySection(bool isTamil) {
+    // Define thresholds for different weather conditions
+    const double highRainThreshold = 60.0; // 60% chance of rain
+    const double highWindThreshold = 25.0; // 25 km/h
+    const double highTempThreshold = 35.0; // 35°C
+    
+    // Check weather conditions
+    bool hasHighRainChance = false;
+    bool hasHighWinds = false;
+    bool hasHighTemperature = false;
+    
+    // Check today's temperature
+    if (_weather!.temperature >= highTempThreshold) {
+      hasHighTemperature = true;
+    }
+    
+    // Check wind speed
+    if (_weather!.windSpeed >= highWindThreshold) {
+      hasHighWinds = true;
+    }
+    
+    // Check forecast for rain
+    if (_weather!.forecast.isNotEmpty && _weather!.forecast[0].chanceOfRain >= highRainThreshold) {
+      hasHighRainChance = true;
+    }
+    
+    // If no alerts, return empty container
+    if (!hasHighRainChance && !hasHighWinds && !hasHighTemperature) {
+      return const SizedBox();
+    }
+    
+    // Build advisory messages
+    List<Widget> advisories = [];
+    
+    if (hasHighRainChance) {
+      advisories.add(
+        _buildAdvisoryItem(
+          icon: Icons.umbrella,
+          title: isTamil ? 'மழை எச்சரிக்கை' : 'Rain Alert',
+          message: isTamil 
+              ? 'இன்று அதிக மழைக்கு வாய்ப்பு உள்ளது. பயிர்களுக்கு தண்ணீர் பாய்ச்சுவதை தவிர்க்கவும்.'
+              : 'High chance of rain today. Avoid watering your crops.',
+          color: Colors.blue,
+        ),
+      );
+    }
+    
+    if (hasHighWinds) {
+      advisories.add(
+        _buildAdvisoryItem(
+          icon: Icons.air,
+          title: isTamil ? 'காற்று எச்சரிக்கை' : 'Wind Alert',
+          message: isTamil 
+              ? 'அதிக காற்று வீசுகிறது. பயிர்களை பாதுகாப்பாக வைக்க நடவடிக்கை எடுக்கவும்.'
+              : 'Strong winds are expected. Take measures to protect your crops.',
+          color: Colors.orange,
+        ),
+      );
+    }
+    
+    if (hasHighTemperature) {
+      advisories.add(
+        _buildAdvisoryItem(
+          icon: Icons.wb_sunny,
+          title: isTamil ? 'வெப்பநிலை எச்சரிக்கை' : 'Heat Alert',
+          message: isTamil 
+              ? 'அதிக வெப்பநிலை உள்ளது. பயிர்களுக்கு வழக்கத்தை விட அதிகமாக தண்ணீர் பாய்ச்சவும்.'
+              : 'High temperature detected. Water your crops more frequently.',
+          color: Colors.red,
+        ),
+      );
+    }
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Advisory title
+        Text(
+          isTamil ? 'பயிர் ஆலோசனை' : 'Crop Advisory',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Advisory list
+        Column(
+          children: advisories,
+        ),
+      ],
+    );
+  }
+  
+  // Helper method to build advisory items
+  Widget _buildAdvisoryItem({
+    required IconData icon,
+    required String title,
+    required String message,
+    required Color color,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withAlpha(51),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withAlpha(77)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            icon,
+            color: Colors.white,
+            size: 24,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  message,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
